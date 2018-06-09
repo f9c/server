@@ -1,19 +1,19 @@
 # f9c
-f9c is an encrypted instant message client.
+f9c is an encrypted instant messaging client.
 
 ! WARNING: This project is in an early development phase. Most features will not work.
 
-##Documentation
+## Documentation
 
 * [Architecture](https://github.com/f9c/server/wiki/Architecture)
 * [Usage](https://github.com/f9c/server/wiki/Usage)
 
-##Building
+## Building
 To build the client libraries and server docker image execute:
 
     mvn package
     
-##Starting the server
+## Starting the server
 
 Execute
 
