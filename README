@@ -1,0 +1,20 @@
+Create keystore:
+keytool -genkey -keyalg RSA -alias selfsigned -keystore keystore.jks -storepass password -validity 360 -keysize 2048
+
+Start redis:
+
+docker run --name db -d redis
+
+mvn compile assembly:single && docker build --build-arg JAR_FILE=./target/f9c-1.0-SNAPSHOT-jar-with-dependencies.jar -t f9c-server . && docker run -p 8080:8080 --name f9c f9c-server
+
+docker rm -f f9c && mvn compile assembly:single && docker build --build-arg JAR_FILE=./ -target/server-1.0-SNAPSHOT-jar-with-dependencies.jar f9c-server . && docker run -p 8080:8080 --link db --name f9c f9c-server
+
+target/server-1.0-SNAPSHOT-jar-with-dendencies.jar
+target/server-1.0-SNAPSHOT-jar-with-dependencies.jar
+
+
+Publish docker image:
+
+docker login --username mehneni --password
+docker tag c7df734af8a2 mehneni/f9c
+docker push mehneni/f9c

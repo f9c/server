@@ -1,0 +1,7 @@
+#cloud-config
+packages:
+ - docker.io
+runcmd:
+ - [ docker, pull, mehneni/f9c ]
+ - [ docker, run, --name, db, -d, redis]
+ - [ docker, run, -d, -p, "443:8443", --link, db, mehneni/f9c]
