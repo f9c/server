@@ -1,5 +1,4 @@
 language: java
 sudo: false
-before_script:
-  - echo "MAVEN_OPTS='-Ddockerfile.skip=true'" > ~/.mavenrc
-script: mvn clean package -
+install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Ddockerfile.skip -B -V
+script: mvn test -B -Ddockerfile.skip
