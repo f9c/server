@@ -76,7 +76,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <repository>mehneni/f3c</repository>
+                    <repository>mehneni/f9c</repository>
                     <buildArgs>
                         <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
                     </buildArgs>
