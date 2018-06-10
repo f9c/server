@@ -6,8 +6,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.ssl.NotSslRecordException;
 
 import java.security.*;
 
@@ -20,7 +22,6 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
 
     public WebSocketFrameHandler(RedisConnection redisConnection) {
         this.redisConnection = redisConnection;
-        System.out.println("Creating new socket handler.");
     }
 
     @Override
@@ -114,5 +115,20 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
         buf.writeInt(message.getType().getOpcode());
         buf.writeBytes(data);
         ctx.channel().writeAndFlush(new BinaryWebSocketFrame(buf));
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        if (cause instanceof DecoderException && cause.getCause() instanceof NotSslRecordException) {
+            // Someone is trying to open a non ssl connection. Ignore and close connection.
+            // This happens all the time with people scanning the server
+            ctx.close();
+            return;
+        }
+        if (cause instanceof Error) {
+            // Do not wrap errors.
+            throw (Error) cause;
+        }
+        throw new RuntimeException(cause);
     }
 }
