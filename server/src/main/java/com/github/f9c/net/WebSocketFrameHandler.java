@@ -11,9 +11,12 @@ import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.ssl.NotSslRecordException;
 
+import javax.net.ssl.SSLException;
 import java.security.*;
+import java.util.logging.Logger;
 
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
+    private static Logger log = Logger.getLogger(WebSocketFrameHandler.class.getSimpleName());
     private ChallengeMessage lastChallenge;
     private ChallengeRequestMessage lastChallengeRequest;
     private RedisConnection redisConnection;
@@ -31,10 +34,13 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
 
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) {
+        log.info("Channel unregistered: " + ctx);
         if (authenticatedKey != null) {
             redisConnection.unsubscribe(authenticatedKey);
         }
     }
+
+
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) {
@@ -57,7 +63,8 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
             case MessageOpcodes.TARGETED_DATA:
                 handleData((TargetedPayloadMessage) message);
                 return;
-            default: throw new IllegalArgumentException("Unsupported opcode: " + opcode);
+            default:
+                throw new IllegalArgumentException("Unsupported opcode: " + opcode);
         }
     }
 
@@ -82,7 +89,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
                 sendMessage(new VerificationFailedMessage());
             }
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-           throw new RuntimeException(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -119,7 +126,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (cause instanceof DecoderException && cause.getCause() instanceof NotSslRecordException) {
+        if (isPlainTextExceptionMessage(cause)) {
             // Someone is trying to open a non ssl connection. Ignore and close connection.
             // This happens all the time with people scanning the server
             ctx.close();
@@ -130,5 +137,11 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
             throw (Error) cause;
         }
         throw new RuntimeException(cause);
+    }
+
+    private boolean isPlainTextExceptionMessage(Throwable cause) {
+        return cause instanceof DecoderException
+                && (cause.getCause() instanceof NotSslRecordException ||
+                    cause.getCause() instanceof SSLException);
     }
 }

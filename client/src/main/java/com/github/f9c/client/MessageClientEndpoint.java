@@ -80,7 +80,7 @@ public class MessageClientEndpoint extends WebSocketAdapter {
 
     @Override
     public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame, boolean closedByServer) {
-        System.out.println("On Close");
+        this.status = ClientConnectionStatus.CLOSED;
     }
 
 
