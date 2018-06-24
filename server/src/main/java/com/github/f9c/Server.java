@@ -14,6 +14,8 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
+import java.io.File;
+
 public class Server {
     private final int port;
 
@@ -40,8 +42,21 @@ public class Server {
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
         try {
-            SelfSignedCertificate ssc = new SelfSignedCertificate();
-            SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            SslContext sslCtx;
+            if (getDomain() == null || "".equals(getDomain())) {
+                System.err.println("No domain specified. Running with self-signed certificate.");
+                SelfSignedCertificate ssc = new SelfSignedCertificate();
+                sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            } else {
+                String certificateBaseDir = "/etc/letsencrypt/live/" + getDomain() + "/";
+                File keyCertChainFile = new File(certificateBaseDir + "fullchain.pem");
+                File keyFile = new File(certificateBaseDir + "privkey.pem");
+
+                checkFileExists(keyFile);
+                checkFileExists(keyCertChainFile);
+
+                sslCtx = SslContextBuilder.forServer(keyCertChainFile, keyFile).build();
+            }
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
@@ -63,6 +78,12 @@ public class Server {
         }
     }
 
+    private void checkFileExists(File file) {
+        if (!file.exists()) {
+            throw new IllegalStateException("Required file does not exist: " + file.getAbsolutePath());
+        }
+    }
+
     public void shutdown() {
         if (bossGroup != null) {
             bossGroup.shutdownGracefully();
@@ -71,7 +92,12 @@ public class Server {
     }
 
     public static void main(String[] args) throws Exception {
+        System.out.println("Starting server for domain: " + getDomain());
         new Server(8443).run();
+    }
+
+    private static String getDomain() {
+        return System.getenv("F9C_DOMAIN");
     }
 
 }

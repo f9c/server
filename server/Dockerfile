@@ -1,5 +1,7 @@
 FROM openjdk:10
 
+VOLUME /etc/letsencrypt
+
 ADD target/lib  /usr/share/f9c/lib
 
 ARG JAR_FILE

@@ -1,7 +1,22 @@
 #cloud-config
 packages:
  - docker.io
-runcmd:
- - [ docker, pull, mehneni/f9c ]
- - [ docker, run, --name, redis, -d, redis]
- - [ docker, run, -d, -p, "443:8443", --link, redis, mehneni/f9c]
+ - docker-compose
+ - certbot
+write_files:
+-   content: |
+        version: '2'
+        services:
+          web:
+            image: "mehneni/f9c"
+            ports:
+             - "443:8443"
+            depends_on:
+              - "redis"
+            volumes:
+              - /etc/letsencrypt/:/etc/letsencrypt/
+            environment:
+              - "F9C_DOMAIN=${F9C_DOMAIN}"
+          redis:
+            image: "redis"
+    path: /etc/docker-compose.yml

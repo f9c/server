@@ -34,13 +34,10 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
 
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) {
-        log.info("Channel unregistered: " + ctx);
         if (authenticatedKey != null) {
             redisConnection.unsubscribe(authenticatedKey);
         }
     }
-
-
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) {
