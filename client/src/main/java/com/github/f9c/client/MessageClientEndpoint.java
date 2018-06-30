@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.security.PublicKey;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MessageClientEndpoint extends WebSocketAdapter {
@@ -81,6 +82,13 @@ public class MessageClientEndpoint extends WebSocketAdapter {
     @Override
     public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame, boolean closedByServer) {
         this.status = ClientConnectionStatus.CLOSED;
+    }
+
+    @Override
+    public void handleCallbackError(WebSocket websocket, Throwable cause) {
+        websocket.sendClose();
+        log.log(Level.SEVERE, "Unexpected websocket error.", cause);
+        clientMessageListener.handleError(cause);
     }
 
 

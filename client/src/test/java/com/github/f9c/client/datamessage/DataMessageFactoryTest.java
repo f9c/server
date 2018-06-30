@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class DataMessageFactoryTest {
+public class DataMessageFactoryTest {
 
     @Test
     public void shouldDecodeEncodedClass() throws Exception {

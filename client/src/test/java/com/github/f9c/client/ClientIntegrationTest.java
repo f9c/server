@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-class ClientIntegrationTest {
+public class ClientIntegrationTest {
     private static final int TEST_PORT = 8443;
 
     @Test
@@ -49,6 +49,11 @@ class ClientIntegrationTest {
         public synchronized void handleDataMessage(AbstractDataMessage message) {
             messages.add(message);
             notifyAll();
+        }
+
+        @Override
+        public void handleError(Throwable cause) {
+            // ignore for test
         }
 
 

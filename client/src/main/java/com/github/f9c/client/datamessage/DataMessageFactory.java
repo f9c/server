@@ -1,7 +1,6 @@
 package com.github.f9c.client.datamessage;
 
 import com.github.f9c.message.ByteBufferHelper;
-import com.github.f9c.message.PayloadMessage;
 import com.github.f9c.message.TargetedPayloadMessage;
 import com.github.f9c.message.encryption.Crypt;
 
@@ -18,7 +17,11 @@ import static com.github.f9c.message.encryption.Crypt.verifySignature;
  * All of the data contained in the PayloadMessage is encrypted and not visible to the server.
  */
 public class DataMessageFactory {
+    private static final int MAX_DATA_LENGTH = 64000;
     private static final int MAX_STRING_LENGTH = 4096;
+    private static final int MAX_ALIAS_LENGTH = 40;
+    private static final int MAX_STATUS_LENGTH = 100;
+    private static final int MAX_SERVER_LENGTH = 20;
     private static final int MAX_PUBLIC_KEY_LENGTH = 4096;
 
     public static AbstractDataMessage readMessage(ByteBuffer content) {
@@ -31,6 +34,12 @@ public class DataMessageFactory {
         switch (opcode) {
             case DataMessageOpcodes.TEXT_MESSAGE:
                 result = readTextMessage(msgId, timestamp, senderPublicKey, content);
+                break;
+            case DataMessageOpcodes.REQUEST_PROFILE_MESSAGE:
+                result = readRequestProfileMessage(msgId, timestamp, senderPublicKey, content);
+                break;
+            case DataMessageOpcodes.PROFILE_DATA_MESSAGE:
+                result = readProfileDataMessage(msgId, timestamp, senderPublicKey, content);
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported opcode: " + opcode);
@@ -46,6 +55,24 @@ public class DataMessageFactory {
         String msgText = ByteBufferHelper.getString(MAX_STRING_LENGTH, content);
         return new TextMessage(msgId, timestamp, senderPublicKey, msgText);
     }
+
+    private static RequestProfileMessage readRequestProfileMessage(UUID msgId, long timestamp, byte[] senderPublicKey, ByteBuffer content) {
+        String server = ByteBufferHelper.getString(MAX_SERVER_LENGTH, content);
+        String alias = ByteBufferHelper.getString(MAX_ALIAS_LENGTH, content);
+        String statusText = ByteBufferHelper.getString(MAX_STATUS_LENGTH, content);
+        byte[] profileImage = ByteBufferHelper.get(MAX_DATA_LENGTH, content);
+
+        return new RequestProfileMessage(msgId, timestamp, senderPublicKey, server, alias, statusText, profileImage);
+    }
+
+    private static ProfileDataMessage readProfileDataMessage(UUID msgId, long timestamp, byte[] senderPublicKey, ByteBuffer content) {
+        String alias = ByteBufferHelper.getString(MAX_ALIAS_LENGTH, content);
+        String statusText = ByteBufferHelper.getString(MAX_STATUS_LENGTH, content);
+        byte[] profileImage = ByteBufferHelper.get(MAX_DATA_LENGTH, content);
+
+        return new ProfileDataMessage(msgId, timestamp, senderPublicKey, alias, statusText, profileImage);
+    }
+
 
     public static TargetedPayloadMessage createTargetedPayloadMessage(PrivateKey sender, PublicKey recipient, AbstractDataMessage message) {
         byte[] msgData = message.data();

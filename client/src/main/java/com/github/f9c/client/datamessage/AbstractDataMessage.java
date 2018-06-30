@@ -8,6 +8,10 @@ import static com.github.f9c.message.ByteBufferHelper.encodedSize;
 import static com.github.f9c.message.ByteBufferHelper.put;
 import static com.github.f9c.message.encryption.Crypt.decodeKey;
 
+/**
+ * Abstract base class for data messages. Data messages are the messages in the encrypted blop of the
+ * PayloadMessage so the content is not known to the server.
+ */
 public abstract class AbstractDataMessage {
     private UUID msgId;
     private long timestamp;
