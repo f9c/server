@@ -1,7 +1,5 @@
 package com.github.f9c.client;
 
-import com.github.f9c.message.encryption.Crypt;
-
 import java.security.*;
 
 public class ClientKeys {

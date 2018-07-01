@@ -53,7 +53,8 @@ public class DataMessageFactory {
 
     private static TextMessage readTextMessage(UUID msgId, long timestamp, byte[] senderPublicKey, ByteBuffer content) {
         String msgText = ByteBufferHelper.getString(MAX_STRING_LENGTH, content);
-        return new TextMessage(msgId, timestamp, senderPublicKey, msgText);
+        String server = ByteBufferHelper.getString(MAX_SERVER_LENGTH, content);
+        return new TextMessage(msgId, timestamp, senderPublicKey, msgText, server);
     }
 
     private static RequestProfileMessage readRequestProfileMessage(UUID msgId, long timestamp, byte[] senderPublicKey, ByteBuffer content) {

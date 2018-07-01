@@ -21,12 +21,13 @@ public class ClientIntegrationTest {
         ClientKeys clientKeys = new ClientKeys();
 
         DummyListener clientMessageListener = new DummyListener();
-        Client client = new Client("127.0.0.1", TEST_PORT, clientKeys, clientMessageListener);
+        String server = "127.0.0.1";
+        Client client = new Client(server, TEST_PORT, clientKeys, clientMessageListener);
 
         long time = System.currentTimeMillis();
         for (int i = 0; i < 10000; i++) {
             client.sendDataMessage(clientKeys.getPublicKey(),
-                    new TextMessage("Hello Server!", clientKeys.getPublicKey()));
+                    new TextMessage("Hello Server!", clientKeys.getPublicKey(), server));
         }
 
         System.out.println("Writing took: " + (System.currentTimeMillis() - time));

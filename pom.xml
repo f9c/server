@@ -13,6 +13,7 @@
         <module>server</module>
         <module>net</module>
         <module>client</module>
+        <module>bot</module>
     </modules>
 
     <properties>

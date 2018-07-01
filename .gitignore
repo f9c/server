@@ -1,3 +1,6 @@
 .idea
 *.iml
 target
+privateKey.dat
+publicKey.dat
+aimlif

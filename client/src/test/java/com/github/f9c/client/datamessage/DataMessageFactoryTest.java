@@ -16,7 +16,7 @@ public class DataMessageFactoryTest {
         ClientKeys senderKeys = new ClientKeys();
         ClientKeys recipientKeys = new ClientKeys();
 
-        TextMessage testMessage = new TextMessage("Testmessage", senderKeys.getPublicKey());
+        TextMessage testMessage = new TextMessage("Testmessage", senderKeys.getPublicKey(), "server");
 
         TargetedPayloadMessage targetedPayloadMessage = DataMessageFactory.createTargetedPayloadMessage(senderKeys.getPrivateKey(), recipientKeys.getPublicKey(), testMessage);
 
@@ -26,6 +26,7 @@ public class DataMessageFactoryTest {
         TextMessage testMessage2 = (TextMessage) DataMessageFactory.readMessage(byteBuffer);
 
         assertEquals(testMessage.getMsgId(), testMessage2.getMsgId());
+        assertEquals(testMessage.getServer(), testMessage2.getServer());
         assertEquals(testMessage.getTimestamp(), testMessage2.getTimestamp());
 
         assertEquals("Testmessage", testMessage2.getMsg());
