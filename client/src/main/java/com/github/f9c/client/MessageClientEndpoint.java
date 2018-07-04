@@ -1,6 +1,7 @@
 package com.github.f9c.client;
 
 import com.github.f9c.client.datamessage.AbstractDataMessage;
+import com.github.f9c.client.datamessage.ClientMessage;
 import com.github.f9c.client.datamessage.DataMessageFactory;
 import com.github.f9c.message.*;
 import com.neovisionaries.ws.client.WebSocket;
@@ -11,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.security.PublicKey;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,11 +24,13 @@ public class MessageClientEndpoint extends WebSocketAdapter {
     private ClientConnectionStatus status;
     private WebSocket webSocket;
     private ClientMessageListener clientMessageListener;
+    private DataMessageFactory dataMessageFactory;
 
     public MessageClientEndpoint(ClientKeys clientKeys, ClientMessageListener clientMessageListener) {
         this.clientKeys = clientKeys;
         status = ClientConnectionStatus.INITIALIZING;
         this.clientMessageListener = clientMessageListener;
+        this.dataMessageFactory = new DataMessageFactory();
     }
 
     @Override
@@ -58,9 +62,9 @@ public class MessageClientEndpoint extends WebSocketAdapter {
                 handleChallenge((ChallengeMessage) message);
                 return;
             case MessageOpcodes.DATA:
-                clientMessageListener.handleDataMessage(
-                        DataMessageFactory.readMessage(ByteBuffer.wrap(((PayloadMessage) message).decode(clientKeys.getPrivateKey()))));
-
+                byte[] decryptedBytes = ((PayloadMessage) message).decrypt(clientKeys.getPrivateKey());
+                Optional<ClientMessage> clientMessage = dataMessageFactory.readMessage(ByteBuffer.wrap(decryptedBytes));
+                clientMessage.ifPresent(clientMessageListener::handleDataMessage);
             case MessageOpcodes.CONNECTION_SUCCESSFUL:
                 setStatus(ClientConnectionStatus.CONNECTED);
                 return;
@@ -106,8 +110,8 @@ public class MessageClientEndpoint extends WebSocketAdapter {
         }
     }
 
-    public void sendDataMessage(PublicKey recipient, AbstractDataMessage msg) {
+    public void sendDataMessage(PublicKey recipient, ClientMessage msg) {
         waitForConnection();
-        sendMessage(DataMessageFactory.createTargetedPayloadMessage(clientKeys.getPrivateKey(), recipient, msg));
+        msg.createPayloadMessages(clientKeys.getPrivateKey(), recipient).forEach(this::sendMessage);
     }
 }

@@ -2,6 +2,7 @@ package com.github.f9c.client;
 
 import com.github.f9c.Client;
 import com.github.f9c.client.datamessage.AbstractDataMessage;
+import com.github.f9c.client.datamessage.ClientMessage;
 import com.github.f9c.client.datamessage.DataMessageFactory;
 import com.github.f9c.client.datamessage.TextMessage;
 import com.github.f9c.message.PayloadMessage;
@@ -44,10 +45,10 @@ public class ClientIntegrationTest {
 
     private static class DummyListener implements ClientMessageListener {
 
-        private List<AbstractDataMessage> messages = new ArrayList<>();
+        private List<ClientMessage> messages = new ArrayList<>();
 
         @Override
-        public synchronized void handleDataMessage(AbstractDataMessage message) {
+        public synchronized void handleDataMessage(ClientMessage message) {
             messages.add(message);
             notifyAll();
         }
@@ -58,7 +59,7 @@ public class ClientIntegrationTest {
         }
 
 
-        synchronized AbstractDataMessage waitForMessage() throws InterruptedException {
+        synchronized ClientMessage waitForMessage() throws InterruptedException {
             if (messages.isEmpty()) {
                 wait(5000);
             }

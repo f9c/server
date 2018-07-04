@@ -1,35 +1,33 @@
 package com.github.f9c.client.datamessage;
 
+import com.github.f9c.message.TargetedPayloadMessage;
+
 import java.nio.ByteBuffer;
+import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.UUID;
+import java.util.stream.Stream;
 
 import static com.github.f9c.client.datamessage.DataMessageOpcodes.TEXT_MESSAGE;
 import static com.github.f9c.message.ByteBufferHelper.encodedSize;
 import static com.github.f9c.message.ByteBufferHelper.putString;
 
-public class TextMessage extends AbstractDataMessage {
+public class TextMessage extends AbstractDataMessage implements ClientMessage {
     private String msg;
-    private String server;
 
     public TextMessage(String msg, PublicKey sender, String server) {
-        super(sender);
+        super(sender, server);
         this.msg = msg;
-        this.server = server;
     }
 
 
-    public TextMessage(UUID msgId, long timestamp, byte[] senderPublicKey, String msg, String server) {
-        super(msgId, timestamp, senderPublicKey);
+    public TextMessage(DataMessageHeader header, String msg) {
+        super(header);
         this.msg = msg;
-        this.server = server;
     }
 
-    @Override
     protected void writeData(ByteBuffer buf) {
-        super.writeData(buf);
+        writeHeader(buf, encodedSize(msg));
         putString(msg, buf);
-        putString(server, buf);
     }
 
     @Override
@@ -37,16 +35,23 @@ public class TextMessage extends AbstractDataMessage {
         return TEXT_MESSAGE;
     }
 
-    @Override
-    public int size() {
-        return super.size() + encodedSize(msg) + encodedSize(server);
-    }
-
     public String getMsg() {
         return msg;
     }
 
-    public String getServer() {
-        return server;
+    public byte[] data() {
+        byte[] data = new byte[size()];
+        ByteBuffer buf = ByteBuffer.wrap(data);
+        writeData(buf);
+        return data;
     }
+
+    public int size() {
+        return getHeader().size() + encodedSize(msg);
+    }
+
+    public Stream<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient) {
+        return Stream.of(DataMessageFactory.createTargetedPayloadMessage(privateKey, recipient, this.data()));
+    }
+
 }

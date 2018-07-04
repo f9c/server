@@ -1,15 +1,21 @@
 package com.github.f9c.client.datamessage;
 
+import com.github.f9c.client.datamessage.multipart.MultiPartMessageOpcodes;
+import com.github.f9c.client.datamessage.multipart.ProfileDataMessage;
+import com.github.f9c.client.datamessage.multipart.RequestProfileMessage;
 import com.github.f9c.message.ByteBufferHelper;
 import com.github.f9c.message.TargetedPayloadMessage;
 import com.github.f9c.message.encryption.Crypt;
 
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.UUID;
+import java.util.Optional;
 
 import static com.github.f9c.message.ByteBufferHelper.allRemainingData;
+import static com.github.f9c.message.ByteBufferHelper.getString;
+import static com.github.f9c.message.encryption.Crypt.decodeKey;
 import static com.github.f9c.message.encryption.Crypt.verifySignature;
 
 /**
@@ -21,62 +27,71 @@ public class DataMessageFactory {
     private static final int MAX_STRING_LENGTH = 4096;
     private static final int MAX_ALIAS_LENGTH = 40;
     private static final int MAX_STATUS_LENGTH = 100;
-    private static final int MAX_SERVER_LENGTH = 20;
-    private static final int MAX_PUBLIC_KEY_LENGTH = 4096;
 
-    public static AbstractDataMessage readMessage(ByteBuffer content) {
-        int opcode = content.getInt();
-        UUID msgId = new UUID(content.getLong(), content.getLong());
-        long timestamp = content.getLong();
-        byte[] senderPublicKey = ByteBufferHelper.get(MAX_PUBLIC_KEY_LENGTH, content);
+    private MultiPartDataDecoder decoder = new MultiPartDataDecoder();
 
-        AbstractDataMessage result;
-        switch (opcode) {
+    public Optional<ClientMessage> readMessage(ByteBuffer content) {
+
+        DataMessageHeader header = DataMessageHeader.read(content);
+
+        int msgDataStart = content.position();
+
+        content.position(msgDataStart + header.getDataSize());
+
+        byte[] signature = allRemainingData(content);
+
+        // limit buffer to data without signature for signature verification
+        content.limit(msgDataStart + header.getDataSize());
+        content.position(0);
+        verifySignature(decodeKey(header.getSenderPublicKey()), content, signature);
+
+        content.position(msgDataStart);
+
+        Optional<ClientMessage> result;
+        switch (header.getOpcode()) {
             case DataMessageOpcodes.TEXT_MESSAGE:
-                result = readTextMessage(msgId, timestamp, senderPublicKey, content);
+                result = readTextMessage(header, content);
                 break;
-            case DataMessageOpcodes.REQUEST_PROFILE_MESSAGE:
-                result = readRequestProfileMessage(msgId, timestamp, senderPublicKey, content);
-                break;
-            case DataMessageOpcodes.PROFILE_DATA_MESSAGE:
-                result = readProfileDataMessage(msgId, timestamp, senderPublicKey, content);
+            case DataMessageOpcodes.MULTI_PART:
+                result = readMultiPartMessage(header, content);
                 break;
             default:
-                throw new IllegalArgumentException("Unsupported opcode: " + opcode);
+                throw new IllegalArgumentException("Unsupported opcode: " + header.getOpcode());
         }
-
-        verifySignature(result.getSenderPublicKey(), result.data(), allRemainingData(content));
 
         return result;
     }
 
+    private Optional<ClientMessage> readMultiPartMessage(DataMessageHeader header, ByteBuffer content) {
+        MultiPartDataMessageHeader multiPartHeader = new MultiPartDataMessageHeader(content);
 
-    private static TextMessage readTextMessage(UUID msgId, long timestamp, byte[] senderPublicKey, ByteBuffer content) {
-        String msgText = ByteBufferHelper.getString(MAX_STRING_LENGTH, content);
-        String server = ByteBufferHelper.getString(MAX_SERVER_LENGTH, content);
-        return new TextMessage(msgId, timestamp, senderPublicKey, msgText, server);
+        byte[] data = new byte[header.getDataSize() - multiPartHeader.size()];
+        content.get(data);
+        Optional<InputStream> optionalInputStream = decoder.add(header, multiPartHeader, data);
+
+        return optionalInputStream.map(is -> {
+            switch (multiPartHeader.getMultiOpcode()) {
+
+                case MultiPartMessageOpcodes.REQUEST_PROFILE_MESSAGE:
+                    return new RequestProfileMessage(header, is);
+
+                case MultiPartMessageOpcodes.PROFILE_DATA_MESSAGE:
+                    return new ProfileDataMessage(header, is);
+
+                default:
+                    new IllegalArgumentException("Unsupported multi opcode: " + header.getOpcode());
+            }
+            throw new UnsupportedOperationException();
+        });
     }
 
-    private static RequestProfileMessage readRequestProfileMessage(UUID msgId, long timestamp, byte[] senderPublicKey, ByteBuffer content) {
-        String server = ByteBufferHelper.getString(MAX_SERVER_LENGTH, content);
-        String alias = ByteBufferHelper.getString(MAX_ALIAS_LENGTH, content);
-        String statusText = ByteBufferHelper.getString(MAX_STATUS_LENGTH, content);
-        byte[] profileImage = ByteBufferHelper.get(MAX_DATA_LENGTH, content);
 
-        return new RequestProfileMessage(msgId, timestamp, senderPublicKey, server, alias, statusText, profileImage);
-    }
-
-    private static ProfileDataMessage readProfileDataMessage(UUID msgId, long timestamp, byte[] senderPublicKey, ByteBuffer content) {
-        String alias = ByteBufferHelper.getString(MAX_ALIAS_LENGTH, content);
-        String statusText = ByteBufferHelper.getString(MAX_STATUS_LENGTH, content);
-        byte[] profileImage = ByteBufferHelper.get(MAX_DATA_LENGTH, content);
-
-        return new ProfileDataMessage(msgId, timestamp, senderPublicKey, alias, statusText, profileImage);
+    private Optional<ClientMessage> readTextMessage(DataMessageHeader header, ByteBuffer content) {
+        return Optional.of(new TextMessage(header, getString(MAX_STRING_LENGTH, content)));
     }
 
 
-    public static TargetedPayloadMessage createTargetedPayloadMessage(PrivateKey sender, PublicKey recipient, AbstractDataMessage message) {
-        byte[] msgData = message.data();
+    public static TargetedPayloadMessage createTargetedPayloadMessage(PrivateKey sender, PublicKey recipient, byte[] msgData) {
         byte[] signatureData = Crypt.sign(sender, msgData);
 
         byte[] resultData = new byte[msgData.length + signatureData.length];

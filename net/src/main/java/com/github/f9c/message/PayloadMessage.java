@@ -28,7 +28,7 @@ public class PayloadMessage implements Message {
         return encryptedData;
     }
 
-    public byte[] decode(PrivateKey privateKey) {
+    public byte[] decrypt(PrivateKey privateKey) {
         try {
             return Crypt.decrypt(privateKey, encryptedData);
         } catch (GeneralSecurityException e) {

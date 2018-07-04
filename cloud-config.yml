@@ -7,7 +7,7 @@ write_files:
 -   content: |
         version: '2'
         services:
-          web:
+          f9c:
             image: "mehneni/f9c"
             ports:
              - "443:8443"
@@ -17,6 +17,12 @@ write_files:
               - /etc/letsencrypt/:/etc/letsencrypt/
             environment:
               - "F9C_DOMAIN=${F9C_DOMAIN}"
+          bot:
+              image: "mehneni/f9c-bot"
+              depends_on:
+                - "f9c"
+              volumes:
+                - /etc/f9c/bots:/usr/share/f9c/keys
           redis:
             image: "redis"
     path: /etc/docker-compose.yml

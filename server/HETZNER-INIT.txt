@@ -1,0 +1,9 @@
+
+
+
+ Run cloud-init for testing:
+
+ /usr/bin/cloud-init -d init
+ /var/lib/cloud/instance/user-data.txt
+
+  https://f9c.eu?alias=Hearty+Hart&publicKey=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC82numI7YKfFUkAQhYSQbKArEDgEy53Ikk7KdwUZzRUHOgrkv14elmb2Ip_cGpfLmAPWvpOFv8X-EUjEIhwdtCGH8yOAdiwFt7sYH1hMX1i_c1NwpXgDBCuoIKliqSIXuHu8nWTpTfVy1P0EExRMayWpVpdumfKPLPrgwAIbFy0QIDAQAB&server=f9c

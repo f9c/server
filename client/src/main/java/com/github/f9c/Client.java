@@ -4,6 +4,7 @@ import com.github.f9c.client.ClientKeys;
 import com.github.f9c.client.ClientMessageListener;
 import com.github.f9c.client.MessageClientEndpoint;
 import com.github.f9c.client.datamessage.AbstractDataMessage;
+import com.github.f9c.client.datamessage.ClientMessage;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFactory;
@@ -20,15 +21,18 @@ public class Client {
     private MessageClientEndpoint endpoint;
     private WebSocket webSocket;
     private String uri;
-    private  WebSocketFactory factory;
+    private WebSocketFactory factory;
+    private String host;
 
     public Client(String host, int port, ClientKeys keys, ClientMessageListener clientMessageListener) throws Exception {
+        this.host = host;
         uri = "https://" + host + ":" + port + "/websocket";
 
         factory = createWebSocketFactory();
         endpoint = new MessageClientEndpoint(keys, clientMessageListener);
 
         webSocket = createWebSocket(uri, factory);
+
     }
 
     private WebSocketFactory createWebSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
@@ -68,7 +72,7 @@ public class Client {
         return webSocket;
     }
 
-    public void sendDataMessage(PublicKey recipient, AbstractDataMessage msg) throws IOException, WebSocketException {
+    public void sendDataMessage(PublicKey recipient, ClientMessage msg) throws IOException, WebSocketException {
         if (!webSocket.isOpen()) {
             webSocket = createWebSocket(uri, factory);
         }
@@ -84,5 +88,9 @@ public class Client {
 
     public void close() {
         webSocket.sendClose();
+    }
+
+    public String getHost() {
+        return host;
     }
 }

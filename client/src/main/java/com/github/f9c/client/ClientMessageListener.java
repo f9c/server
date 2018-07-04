@@ -1,9 +1,9 @@
 package com.github.f9c.client;
 
-import com.github.f9c.client.datamessage.AbstractDataMessage;
+import com.github.f9c.client.datamessage.ClientMessage;
 
 public interface ClientMessageListener {
-    void handleDataMessage(AbstractDataMessage message);
+    void handleDataMessage(ClientMessage message);
 
     void handleError(Throwable cause);
 }

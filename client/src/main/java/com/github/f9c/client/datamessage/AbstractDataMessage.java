@@ -1,11 +1,13 @@
 package com.github.f9c.client.datamessage;
 
+import com.github.f9c.message.TargetedPayloadMessage;
+
 import java.nio.ByteBuffer;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.UUID;
+import java.util.stream.Stream;
 
-import static com.github.f9c.message.ByteBufferHelper.encodedSize;
-import static com.github.f9c.message.ByteBufferHelper.put;
 import static com.github.f9c.message.encryption.Crypt.decodeKey;
 
 /**
@@ -13,52 +15,42 @@ import static com.github.f9c.message.encryption.Crypt.decodeKey;
  * PayloadMessage so the content is not known to the server.
  */
 public abstract class AbstractDataMessage {
-    private UUID msgId;
-    private long timestamp;
-    private byte[] senderPublicKey;
+    private DataMessageHeader header;
 
-    AbstractDataMessage(PublicKey sender) {
-        this.msgId = UUID.randomUUID();
-        this.timestamp = System.currentTimeMillis();
-        this.senderPublicKey = sender.getEncoded();
+    AbstractDataMessage(PublicKey sender, String senderServer) {
+        header = new DataMessageHeader(getOpcode(), sender, senderServer, 0);
     }
 
-    AbstractDataMessage(UUID msgId, long timestamp, byte[] sender) {
-        this.msgId = msgId;
-        this.timestamp = timestamp;
-        this.senderPublicKey = sender;
+    AbstractDataMessage(DataMessageHeader header) {
+        this.header = header;
     }
 
     public UUID getMsgId() {
-        return msgId;
+        return header.getMsgId();
     }
 
     public long getTimestamp() {
-        return timestamp;
+        return header.getTimestamp();
     }
 
     public PublicKey getSenderPublicKey() {
-        return decodeKey(senderPublicKey);
+        return decodeKey(header.getSenderPublicKey());
     }
 
-    public byte[] data() {
-        byte[] data = new byte[size()];
-        ByteBuffer buf = ByteBuffer.wrap(data);
-        writeData(buf);
-        return data;
-    }
-
-    protected void writeData(ByteBuffer buf) {
-        buf.putInt(getOpcode());
-        buf.putLong(msgId.getMostSignificantBits());
-        buf.putLong(msgId.getLeastSignificantBits());
-        buf.putLong(timestamp);
-        put(senderPublicKey, buf);
+    public byte[] getRawSenderPublicKey() {
+        return header.getSenderPublicKey();
     }
 
     protected abstract int getOpcode();
 
-    public int size() {
-        return 4 + (3 * 8) + encodedSize(senderPublicKey);
+    protected void writeHeader(ByteBuffer buf, int dataSize)  {
+        header.setDataSize(dataSize);
+        header.write(buf);
     }
+
+    public DataMessageHeader getHeader() {
+        return header;
+    }
+
+    public abstract Stream<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient);
 }

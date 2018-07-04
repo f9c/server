@@ -103,11 +103,11 @@ public class Crypt {
         return cipher.doFinal();
     }
 
-    public static void verifySignature(PublicKey publicKey, byte[] data, byte[] signatureBytes) {
+    public static void verifySignature(PublicKey publicKey, ByteBuffer byteBuffer, byte[] signatureBytes) {
         try {
             Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
             signature.initVerify(publicKey);
-            signature.update(data);
+            signature.update(byteBuffer);
             if (!signature.verify(signatureBytes)) {
                 throw new IllegalStateException("Signature validation failed.");
             }

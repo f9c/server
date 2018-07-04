@@ -3,11 +3,11 @@ package com.github.f9c.bot;
 import com.github.f9c.Client;
 import com.github.f9c.client.ClientKeys;
 import com.github.f9c.client.ClientMessageListener;
-import com.github.f9c.client.datamessage.AbstractDataMessage;
-import com.github.f9c.client.datamessage.ProfileDataMessage;
-import com.github.f9c.client.datamessage.RequestProfileMessage;
+import com.github.f9c.client.datamessage.ClientMessage;
 import com.github.f9c.client.datamessage.TextMessage;
-import com.google.common.cache.Cache;
+import com.github.f9c.client.datamessage.multipart.ProfileDataMessage;
+import com.github.f9c.client.datamessage.multipart.RequestProfileMessage;
+import com.github.f9c.message.encryption.Crypt;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -15,6 +15,7 @@ import com.neovisionaries.ws.client.WebSocketException;
 import org.alicebot.ab.Bot;
 import org.alicebot.ab.Chat;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -65,7 +66,7 @@ public class BotListener implements ClientMessageListener {
     }
 
     @Override
-    public void handleDataMessage(AbstractDataMessage message) {
+    public void handleDataMessage(ClientMessage message) {
         if (message instanceof TextMessage) {
             handleTextMessage((TextMessage) message);
         } else if (message instanceof RequestProfileMessage) {
@@ -75,10 +76,10 @@ public class BotListener implements ClientMessageListener {
         }
     }
 
-    private void handleProfileDataRequest(RequestProfileMessage message) {
+   private void handleProfileDataRequest(RequestProfileMessage message) {
         try {
-            client.sendDataMessage(message.getSenderPublicKey(), new ProfileDataMessage(
-                    getAlias(), "A harty welcome to f9c!", profileImage, clientKeys.getPublicKey()));
+            client.sendDataMessage(Crypt.decodeKey(message.getHeader().getSenderPublicKey()), new ProfileDataMessage(clientKeys.getPublicKey(),  client.getHost(),
+                    getAlias(), "A harty welcome to f9c!", new ByteArrayInputStream(profileImage)));
         } catch (IOException | WebSocketException e) {
             logger.log(Level.SEVERE, "Communication Error.", e);
         }
@@ -88,7 +89,7 @@ public class BotListener implements ClientMessageListener {
         try {
             Chat chatSession = openChats.get(message.getSenderPublicKey());
             String response = chatSession.multisentenceRespond(message.getMsg());
-            client.sendDataMessage(message.getSenderPublicKey(), new TextMessage(response, clientKeys.getPublicKey(), message.getServer()));
+            client.sendDataMessage(message.getSenderPublicKey(), new TextMessage(response, clientKeys.getPublicKey(), message.getHeader().getSenderServer()));
         } catch (IOException | WebSocketException e) {
             logger.log(Level.SEVERE, "Communication Error.", e);
         } catch (ExecutionException e) {

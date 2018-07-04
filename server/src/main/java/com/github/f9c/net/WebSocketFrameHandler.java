@@ -8,6 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.ContinuationWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.ssl.NotSslRecordException;
 
@@ -42,6 +43,13 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) {
         if (frame instanceof BinaryWebSocketFrame) {
+            BinaryWebSocketFrame binaryFrame = (BinaryWebSocketFrame) frame;
+            if (binaryFrame.isFinalFragment()) {
+                handleMessage(MessageFactory.readMessage(binaryFrame));
+            } else {
+
+            }
+        } else if (frame instanceof ContinuationWebSocketFrame) {
             handleMessage(MessageFactory.readMessage((BinaryWebSocketFrame) frame));
         } else {
             throw new UnsupportedOperationException("Unsupported frame type: " + frame.getClass().getName());
