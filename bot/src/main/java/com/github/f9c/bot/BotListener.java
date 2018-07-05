@@ -80,7 +80,7 @@ public class BotListener implements ClientMessageListener {
 
    private void handleProfileDataRequest(RequestProfileMessage message) {
         try {
-            client.sendDataMessage(Crypt.decodeKey(message.getHeader().getSenderPublicKey()), new ProfileDataMessage(clientKeys.getPublicKey(),  client.getHost(),
+            client.sendDataMessage(Crypt.decodeKey(message.getHeader().getSenderPublicKey()), message.getHeader().getSenderServer(), new ProfileDataMessage(clientKeys.getPublicKey(),  client.getHost(),
                     getAlias(), "A harty welcome to f9c!", new ByteArrayInputStream(profileImage)));
         } catch (IOException | WebSocketException e) {
             logger.log(Level.SEVERE, "Communication Error.", e);
@@ -91,7 +91,7 @@ public class BotListener implements ClientMessageListener {
         try {
             Chat chatSession = openChats.get(message.getSenderPublicKey());
             String response = chatSession.multisentenceRespond(message.getMsg());
-            client.sendDataMessage(message.getSenderPublicKey(), new TextMessage(response, clientKeys.getPublicKey(), sendServer));
+            client.sendDataMessage(message.getSenderPublicKey(), message.getHeader().getSenderServer(), new TextMessage(response, clientKeys.getPublicKey(), sendServer));
         } catch (IOException | WebSocketException e) {
             logger.log(Level.SEVERE, "Communication Error.", e);
         } catch (ExecutionException e) {

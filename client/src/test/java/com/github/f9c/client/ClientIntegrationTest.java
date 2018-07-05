@@ -27,7 +27,7 @@ public class ClientIntegrationTest {
 
         long time = System.currentTimeMillis();
         for (int i = 0; i < 10000; i++) {
-            client.sendDataMessage(clientKeys.getPublicKey(),
+            client.sendDataMessage(clientKeys.getPublicKey(), server,
                     new TextMessage("Hello Server!", clientKeys.getPublicKey(), server));
         }
 
