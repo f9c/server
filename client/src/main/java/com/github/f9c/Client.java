@@ -2,9 +2,10 @@ package com.github.f9c;
 
 import com.github.f9c.client.ClientKeys;
 import com.github.f9c.client.ClientMessageListener;
-import com.github.f9c.client.MessageClientEndpoint;
-import com.github.f9c.client.datamessage.AbstractDataMessage;
+import com.github.f9c.client.AuthenticatedClientEndpoint;
 import com.github.f9c.client.datamessage.ClientMessage;
+import com.github.f9c.message.MessageHelper;
+import com.github.f9c.message.TargetedPayloadMessage;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFactory;
@@ -16,23 +17,37 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class Client {
-    private MessageClientEndpoint endpoint;
-    private WebSocket webSocket;
+    private static final int DEFAULT_PORT = 443;
+    private final ClientKeys keys;
+
+    private AuthenticatedClientEndpoint endpoint;
+    private WebSocket primaryServerSocket;
+    /** Map from host name to socket connection. */
+    private Map<String, WebSocket> secondarySockets;
     private String uri;
     private WebSocketFactory factory;
     private String host;
 
     public Client(String host, int port, ClientKeys keys, ClientMessageListener clientMessageListener) throws Exception {
         this.host = host;
-        uri = "https://" + host + ":" + port + "/websocket";
+        this.uri = createUri(host, port);
+        this.keys = keys;
+        this.secondarySockets = new HashMap<>();
 
         factory = createWebSocketFactory();
-        endpoint = new MessageClientEndpoint(keys, clientMessageListener);
+        endpoint = new AuthenticatedClientEndpoint(keys, clientMessageListener);
 
-        webSocket = createWebSocket(uri, factory);
+        primaryServerSocket = createWebSocket(uri, factory, endpoint);
 
+    }
+
+    private String createUri(String host, int port) {
+        return "https://" + host + ":" + port + "/websocket";
     }
 
     private WebSocketFactory createWebSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
@@ -64,17 +79,27 @@ public class Client {
         return factory;
     }
 
-    private WebSocket createWebSocket(String uri, WebSocketFactory factory) throws IOException, WebSocketException {
+    private WebSocket createWebSocket(String uri, WebSocketFactory factory, AuthenticatedClientEndpoint endpoint) throws IOException, WebSocketException {
         WebSocket webSocket = factory.createSocket(uri);
         webSocket.setMaxPayloadSize(64 * 1024);
-        webSocket.addListener(endpoint);
+        if (endpoint != null) {
+            webSocket.addListener(endpoint);
+        }
         webSocket.connect();
         return webSocket;
     }
 
-    public void sendDataMessage(PublicKey recipient, ClientMessage msg) throws IOException, WebSocketException {
-        if (!webSocket.isOpen()) {
-            webSocket = createWebSocket(uri, factory);
+    public void sendDataMessage(PublicKey recipient, String recipientServer, ClientMessage msg) throws IOException, WebSocketException {
+        if (recipientServer.equals(host)) {
+            sendDataMessageToPrimaryServer(recipient, msg);
+        } else {
+            sendDataMessageToSecondaryServer(recipient, recipientServer, msg);
+        }
+    }
+
+    private void sendDataMessageToPrimaryServer(PublicKey recipient, ClientMessage msg) throws IOException, WebSocketException {
+        if (!primaryServerSocket.isOpen()) {
+            primaryServerSocket = createWebSocket(uri, factory, null);
         }
 
         waitForConnection();
@@ -82,12 +107,25 @@ public class Client {
         endpoint.sendDataMessage(recipient, msg);
     }
 
+    private void sendDataMessageToSecondaryServer(PublicKey recipient, String recipientServer, ClientMessage msg) throws IOException, WebSocketException {
+        WebSocket webSocket = secondarySockets.get(recipientServer);
+        if (webSocket == null || !webSocket.isOpen()) {
+            webSocket = createWebSocket(createUri(recipientServer, DEFAULT_PORT), factory, null);
+            secondarySockets.put(recipientServer, webSocket);
+        }
+
+        Iterator<TargetedPayloadMessage> it = msg.createPayloadMessages(keys.getPrivateKey(), recipient);
+        while (it.hasNext()) {
+            webSocket.sendBinary(MessageHelper.toBinary(it.next()));
+        }
+    }
+
     public void waitForConnection() {
         endpoint.waitForConnection();
     }
 
     public void close() {
-        webSocket.sendClose();
+        primaryServerSocket.sendClose();
     }
 
     public String getHost() {

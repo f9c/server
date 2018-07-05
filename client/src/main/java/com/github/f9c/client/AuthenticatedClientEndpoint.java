@@ -15,19 +15,19 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MessageClientEndpoint extends WebSocketAdapter {
+public class AuthenticatedClientEndpoint extends WebSocketAdapter {
     private static final long CONNECT_TIMEOUT = 15000;
     private ClientKeys clientKeys;
-    private Logger log = Logger.getLogger(MessageClientEndpoint.class.getSimpleName());
+    private Logger log = Logger.getLogger(AuthenticatedClientEndpoint.class.getSimpleName());
 
     private ClientConnectionStatus status;
     private WebSocket webSocket;
     private ClientMessageListener clientMessageListener;
     private DataMessageFactory dataMessageFactory;
 
-    public MessageClientEndpoint(ClientKeys clientKeys, ClientMessageListener clientMessageListener) {
+    public AuthenticatedClientEndpoint(ClientKeys clientKeys, ClientMessageListener clientMessageListener) {
         this.clientKeys = clientKeys;
-        status = ClientConnectionStatus.INITIALIZING;
+        this.status = ClientConnectionStatus.INITIALIZING;
         this.clientMessageListener = clientMessageListener;
         this.dataMessageFactory = new DataMessageFactory();
     }
@@ -39,17 +39,8 @@ public class MessageClientEndpoint extends WebSocketAdapter {
         sendMessage(new ChallengeRequestMessage(ChallengeRequestMessage.PROTOCOL_VERSION_1, clientKeys.getPublicKey()));
     }
 
-    private void sendMessage(Message msg) {
-        byte[] data = msg.data();
-
-        ByteBuffer bb = ByteBuffer.allocate(data.length + 4);
-        bb.putInt(msg.getType().getOpcode());
-        bb.put(data);
-        bb.rewind();
-
-        byte[] arr = new byte[bb.remaining()];
-        bb.get(arr);
-        webSocket.sendBinary(arr);
+    private void sendMessage(Message message) {
+        webSocket.sendBinary(MessageHelper.toBinary(message));
     }
 
     @Override
