@@ -9,7 +9,7 @@ import java.io.DataInputStream;
 import java.io.InputStream;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.stream.Stream;
+import java.util.Iterator;
 
 public abstract class AbstractMultiPartMessage {
 
@@ -46,7 +46,7 @@ public abstract class AbstractMultiPartMessage {
         return header;
     }
 
-    public Stream<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient) {
+    public Iterator<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient) {
         return toMultiPartDataMessage().createPayloadMessages(privateKey, recipient);
     }
 }

@@ -5,8 +5,8 @@ import com.github.f9c.message.TargetedPayloadMessage;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Iterator;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import static com.github.f9c.message.encryption.Crypt.decodeKey;
 
@@ -52,5 +52,5 @@ public abstract class AbstractDataMessage {
         return header;
     }
 
-    public abstract Stream<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient);
+    public abstract Iterator<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient);
 }

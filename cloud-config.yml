@@ -18,11 +18,13 @@ write_files:
             environment:
               - "F9C_DOMAIN=${F9C_DOMAIN}"
           bot:
-              image: "mehneni/f9c-bot"
-              depends_on:
-                - "f9c"
-              volumes:
-                - /etc/f9c/bots:/usr/share/f9c/keys
+            image: "mehneni/f9c-bot"
+            depends_on:
+              - "f9c"
+            volumes:
+              - /etc/f9c/bots:/usr/share/f9c/keys
+            environment:
+              - "F9C_DOMAIN=${F9C_DOMAIN}"
           redis:
             image: "redis"
     path: /etc/docker-compose.yml

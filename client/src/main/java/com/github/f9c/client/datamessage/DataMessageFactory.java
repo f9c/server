@@ -3,7 +3,6 @@ package com.github.f9c.client.datamessage;
 import com.github.f9c.client.datamessage.multipart.MultiPartMessageOpcodes;
 import com.github.f9c.client.datamessage.multipart.ProfileDataMessage;
 import com.github.f9c.client.datamessage.multipart.RequestProfileMessage;
-import com.github.f9c.message.ByteBufferHelper;
 import com.github.f9c.message.TargetedPayloadMessage;
 import com.github.f9c.message.encryption.Crypt;
 
@@ -11,7 +10,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Optional;
 
 import static com.github.f9c.message.ByteBufferHelper.allRemainingData;
 import static com.github.f9c.message.ByteBufferHelper.getString;
@@ -30,7 +28,7 @@ public class DataMessageFactory {
 
     private MultiPartDataDecoder decoder = new MultiPartDataDecoder();
 
-    public Optional<ClientMessage> readMessage(ByteBuffer content) {
+    public ClientMessage readMessage(ByteBuffer content) {
 
         DataMessageHeader header = DataMessageHeader.read(content);
 
@@ -47,7 +45,7 @@ public class DataMessageFactory {
 
         content.position(msgDataStart);
 
-        Optional<ClientMessage> result;
+        ClientMessage result;
         switch (header.getOpcode()) {
             case DataMessageOpcodes.TEXT_MESSAGE:
                 result = readTextMessage(header, content);
@@ -62,32 +60,33 @@ public class DataMessageFactory {
         return result;
     }
 
-    private Optional<ClientMessage> readMultiPartMessage(DataMessageHeader header, ByteBuffer content) {
+    private ClientMessage readMultiPartMessage(DataMessageHeader header, ByteBuffer content) {
         MultiPartDataMessageHeader multiPartHeader = new MultiPartDataMessageHeader(content);
 
         byte[] data = new byte[header.getDataSize() - multiPartHeader.size()];
         content.get(data);
-        Optional<InputStream> optionalInputStream = decoder.add(header, multiPartHeader, data);
+        InputStream inputStream = decoder.add(header, multiPartHeader, data);
 
-        return optionalInputStream.map(is -> {
+        if (inputStream != null) {
             switch (multiPartHeader.getMultiOpcode()) {
 
                 case MultiPartMessageOpcodes.REQUEST_PROFILE_MESSAGE:
-                    return new RequestProfileMessage(header, is);
+                    return new RequestProfileMessage(header, inputStream);
 
                 case MultiPartMessageOpcodes.PROFILE_DATA_MESSAGE:
-                    return new ProfileDataMessage(header, is);
+                    return new ProfileDataMessage(header, inputStream);
 
                 default:
                     new IllegalArgumentException("Unsupported multi opcode: " + header.getOpcode());
             }
-            throw new UnsupportedOperationException();
-        });
+
+        }
+        return null;
     }
 
 
-    private Optional<ClientMessage> readTextMessage(DataMessageHeader header, ByteBuffer content) {
-        return Optional.of(new TextMessage(header, getString(MAX_STRING_LENGTH, content)));
+    private ClientMessage readTextMessage(DataMessageHeader header, ByteBuffer content) {
+        return new TextMessage(header, getString(MAX_STRING_LENGTH, content));
     }
 
 

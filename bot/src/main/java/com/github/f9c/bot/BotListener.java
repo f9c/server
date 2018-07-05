@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 
 public class BotListener implements ClientMessageListener {
     private static Logger logger = Logger.getLogger(BotListener.class.getName());
+    private final String sendServer;
     private Client client;
     private ClientKeys clientKeys;
     private byte[] profileImage;
@@ -45,9 +46,10 @@ public class BotListener implements ClientMessageListener {
                         }
                     });
 
-    public BotListener(String baseDir, String botName) throws IOException {
+    public BotListener(String baseDir, String botName, String sendServer) throws IOException {
         System.out.println("Using " + new File(baseDir).getAbsolutePath() + " as bas dir.");
 
+        this.sendServer = sendServer;
         profileImage = Files.readAllBytes(Paths.get(baseDir, "bots", botName, "profile.png"));
 
         this.bot = new Bot(botName, baseDir, "chat");
@@ -89,7 +91,7 @@ public class BotListener implements ClientMessageListener {
         try {
             Chat chatSession = openChats.get(message.getSenderPublicKey());
             String response = chatSession.multisentenceRespond(message.getMsg());
-            client.sendDataMessage(message.getSenderPublicKey(), new TextMessage(response, clientKeys.getPublicKey(), message.getHeader().getSenderServer()));
+            client.sendDataMessage(message.getSenderPublicKey(), new TextMessage(response, clientKeys.getPublicKey(), sendServer));
         } catch (IOException | WebSocketException e) {
             logger.log(Level.SEVERE, "Communication Error.", e);
         } catch (ExecutionException e) {

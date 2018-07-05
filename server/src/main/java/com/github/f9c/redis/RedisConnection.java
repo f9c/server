@@ -81,15 +81,12 @@ public class RedisConnection {
     public void subscribeForUpdates(PublicKey recipient, WebSocketFrameHandler socketHandler) {
         byte[] recipientKey = recipientKey(recipient);
         handlers.put(new KeyBytes(recipientKey), socketHandler);
-        log.info("Sockethandler: " + socketHandler);
-        log.info("Subscribing: " + Arrays.toString(recipientKey));
         pubSubConnection.sync().subscribe(recipientKey);
     }
 
     public void unsubscribe(PublicKey recipient) {
         byte[] recipientKey = recipientKey(recipient);
         handlers.remove(new KeyBytes(recipientKey));
-        log.info("Unubscribing: " + recipient);
         pubSubConnection.sync().unsubscribe(recipientKey);
     }
 

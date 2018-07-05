@@ -5,7 +5,8 @@ import com.github.f9c.message.TargetedPayloadMessage;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.stream.Stream;
+import java.util.Arrays;
+import java.util.Iterator;
 
 import static com.github.f9c.client.datamessage.DataMessageOpcodes.TEXT_MESSAGE;
 import static com.github.f9c.message.ByteBufferHelper.encodedSize;
@@ -50,8 +51,8 @@ public class TextMessage extends AbstractDataMessage implements ClientMessage {
         return getHeader().size() + encodedSize(msg);
     }
 
-    public Stream<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient) {
-        return Stream.of(DataMessageFactory.createTargetedPayloadMessage(privateKey, recipient, this.data()));
+    public Iterator<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient) {
+        return Arrays.asList(DataMessageFactory.createTargetedPayloadMessage(privateKey, recipient, this.data())).iterator();
     }
 
 }

@@ -1,44 +1,33 @@
 package com.github.f9c.client.datamessage;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 
 /**
  * Combines multi part data messages to one message again. Currently this is done in memory and only completed messages
  * are returned.
- *
+ * <p>
  * Later larger streams should be stored in temporary files and the MultiPartStream should be returned while partly
  * filled and block until all data is received.
  */
 public class MultiPartDataDecoder {
-    private Cache<DataMessageHeader, MultiPartStream> partlyReceivedMessages =
-            CacheBuilder.newBuilder()
-                    .maximumSize(10000)
-                    .expireAfterWrite(1, TimeUnit.HOURS)
-                    .build();
+    // TODO: implement cache with timeouts / size limit
+    private Map<DataMessageHeader, MultiPartStream> partlyReceivedMessages = new HashMap<>();
 
-    public Optional<InputStream> add(DataMessageHeader messageHeader, MultiPartDataMessageHeader multiPartDataMessageHeader, byte[] data) {
-        try {
-            MultiPartStream stream = partlyReceivedMessages.get(messageHeader, MultiPartStream::new);
-            stream.add(multiPartDataMessageHeader, data);
-
-            if (stream.isComplete()) {
-                partlyReceivedMessages.invalidate(messageHeader);
-                return Optional.of(stream);
-            }
-            return Optional.empty();
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
+    public InputStream add(DataMessageHeader messageHeader, MultiPartDataMessageHeader multiPartDataMessageHeader, byte[] data) {
+        MultiPartStream stream = partlyReceivedMessages.get(messageHeader);
+        if (stream == null) {
+            stream = new MultiPartStream();
+            partlyReceivedMessages.put(messageHeader, stream);
         }
+        stream.add(multiPartDataMessageHeader, data);
+
+        if (stream.isComplete()) {
+            partlyReceivedMessages.remove(messageHeader);
+            return stream;
+        }
+        return null;
     }
 
 
@@ -69,7 +58,12 @@ public class MultiPartDataDecoder {
 
         public void add(MultiPartDataMessageHeader partHeader, byte[] data) {
             parts.add(new StreamPart(partHeader, data));
-            parts.sort(Comparator.comparingInt(p -> p.multiPartDataMessageHeader.getPart()));
+            Collections.sort(parts, new Comparator<StreamPart>() {
+                @Override
+                public int compare(StreamPart p1, StreamPart p2) {
+                   return p1.getMultiPartDataMessageHeader().getPart() - p2.getMultiPartDataMessageHeader().getPart();
+                }
+            });
         }
 
         public boolean isComplete() {
@@ -86,6 +80,10 @@ public class MultiPartDataDecoder {
         public StreamPart(MultiPartDataMessageHeader multiPartDataMessageHeader, byte[] data) {
             this.multiPartDataMessageHeader = multiPartDataMessageHeader;
             this.data = data;
+        }
+
+        public MultiPartDataMessageHeader getMultiPartDataMessageHeader() {
+            return multiPartDataMessageHeader;
         }
     }
 }

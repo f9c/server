@@ -1,6 +1,5 @@
 package com.github.f9c.client;
 
-import com.github.f9c.client.datamessage.AbstractDataMessage;
 import com.github.f9c.client.datamessage.ClientMessage;
 import com.github.f9c.client.datamessage.DataMessageFactory;
 import com.github.f9c.message.*;
@@ -10,9 +9,9 @@ import com.neovisionaries.ws.client.WebSocketFrame;
 
 import java.nio.ByteBuffer;
 import java.security.PublicKey;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,8 +62,10 @@ public class MessageClientEndpoint extends WebSocketAdapter {
                 return;
             case MessageOpcodes.DATA:
                 byte[] decryptedBytes = ((PayloadMessage) message).decrypt(clientKeys.getPrivateKey());
-                Optional<ClientMessage> clientMessage = dataMessageFactory.readMessage(ByteBuffer.wrap(decryptedBytes));
-                clientMessage.ifPresent(clientMessageListener::handleDataMessage);
+                ClientMessage clientMessage = dataMessageFactory.readMessage(ByteBuffer.wrap(decryptedBytes));
+                if (clientMessage != null) {
+                    clientMessageListener.handleDataMessage(clientMessage);
+                }
             case MessageOpcodes.CONNECTION_SUCCESSFUL:
                 setStatus(ClientConnectionStatus.CONNECTED);
                 return;
@@ -112,6 +113,9 @@ public class MessageClientEndpoint extends WebSocketAdapter {
 
     public void sendDataMessage(PublicKey recipient, ClientMessage msg) {
         waitForConnection();
-        msg.createPayloadMessages(clientKeys.getPrivateKey(), recipient).forEach(this::sendMessage);
+        Iterator<TargetedPayloadMessage>  it = msg.createPayloadMessages(clientKeys.getPrivateKey(), recipient);
+        while (it.hasNext()) {
+            sendMessage(it.next());
+        }
     }
 }

@@ -9,10 +9,6 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Iterator;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static com.github.f9c.client.datamessage.DataMessageOpcodes.MULTI_PART;
 
@@ -52,10 +48,8 @@ public class MultiPartDataMessage extends AbstractDataMessage {
         return MULTI_PART;
     }
 
-    public Stream<TargetedPayloadMessage> createPayloadMessages(PrivateKey sender, PublicKey recipient) {
-        return StreamSupport.stream(
-                Spliterators.spliteratorUnknownSize(new MultiPartStream(getHeader(), multiOpcode, sender, recipient, baseData(), additionalData()), Spliterator.ORDERED),
-                false);
+    public Iterator<TargetedPayloadMessage> createPayloadMessages(PrivateKey sender, PublicKey recipient) {
+        return new MultiPartStream(getHeader(), multiOpcode, sender, recipient, baseData(), additionalData());
     }
 
     private static class MultiPartStream implements Iterator<TargetedPayloadMessage> {
@@ -127,7 +121,7 @@ public class MultiPartDataMessage extends AbstractDataMessage {
             }
 
             part++;
-            buffer.reset();
+            buffer.rewind();
             header.write(buffer);
             new MultiPartDataMessageHeader(multiOpcode, part, moreDateAvailable).write(buffer);
             moreDateAvailable = fillBuffer();

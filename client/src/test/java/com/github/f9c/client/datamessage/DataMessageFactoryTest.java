@@ -7,6 +7,7 @@ import com.github.f9c.message.encryption.Crypt;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,17 +23,18 @@ public class DataMessageFactoryTest {
 
         TextMessage testMessage = new TextMessage("Testmessage", senderKeys.getPublicKey(), "server");
 
-        Stream<TargetedPayloadMessage> payloadMessages = testMessage.createPayloadMessages(senderKeys.getPrivateKey(), recipientKeys.getPublicKey());
+        Iterator<TargetedPayloadMessage> payloadMessages = testMessage.createPayloadMessages(senderKeys.getPrivateKey(), recipientKeys.getPublicKey());
 
-        List<TargetedPayloadMessage> messages = payloadMessages.collect(Collectors.toList());
-        assertEquals(messages.size(), 1);
+        assertTrue(payloadMessages.hasNext());
 
-        TargetedPayloadMessage targetedPayloadMessage = messages.get(0);
+        TargetedPayloadMessage targetedPayloadMessage = payloadMessages.next();
+
+        assertFalse(payloadMessages.hasNext());
 
         byte[] msgData = Crypt.decrypt(recipientKeys.getPrivateKey(), targetedPayloadMessage.getEncryptedData());
         ByteBuffer byteBuffer = ByteBuffer.wrap(msgData);
 
-        TextMessage testMessage2 = (TextMessage) new DataMessageFactory().readMessage(byteBuffer).get();
+        TextMessage testMessage2 = (TextMessage) new DataMessageFactory().readMessage(byteBuffer);
 
         assertEquals(testMessage.getMsgId(), testMessage2.getMsgId());
         assertEquals(testMessage.getHeader().getSenderServer(), testMessage2.getHeader().getSenderServer());

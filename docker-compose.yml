@@ -16,5 +16,7 @@ services:
       - "f9c"
     volumes:
       - /etc/f9c/bots:/usr/share/f9c/keys
+    environment:
+      - "F9C_DOMAIN=${F9C_DOMAIN}"
   redis:
     image: "redis"

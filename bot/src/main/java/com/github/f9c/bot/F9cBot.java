@@ -25,7 +25,7 @@ public class F9cBot {
 
     public static void main(String[] args) throws Exception {
         // TODO: Wait until server port is open
-        Thread.sleep(7000);
+        Thread.sleep(4000);
         if (args.length != 4)  {
             throw new IllegalArgumentException("Please specify the parameters: <configdir> <botdir> <botname> <server>");
         }
@@ -35,7 +35,13 @@ public class F9cBot {
         String botName = args[2];
         String server = args[3];
 
-        BotListener botListener = new BotListener(botDir, botName);
+        String domain = getDomain();
+        if (getDomain() == null || "".equals(getDomain())) {
+            System.err.println("No domain specified. Using localhost as send server.");
+            domain = "localhost";
+        }
+
+        BotListener botListener = new BotListener(botDir, botName, domain);
 
         ClientKeys keys = initKeys(configDir, botName);
 
@@ -45,7 +51,11 @@ public class F9cBot {
 
         String encodedKey  = Base64.getUrlEncoder().encodeToString(keys.getPublicKey().getEncoded());
 
-        System.out.println("Bot link: " + ClientUrl.createSharingUrl(botListener.getAlias(), encodedKey, server));
+        System.out.println("Bot link: " + ClientUrl.createSharingUrl(botListener.getAlias(), encodedKey, domain));
+    }
+
+    private static String getDomain() {
+        return System.getenv("F9C_DOMAIN");
     }
 
     private static ClientKeys initKeys(String configDir, String botName) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {

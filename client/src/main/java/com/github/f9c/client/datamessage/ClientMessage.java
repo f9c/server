@@ -4,8 +4,10 @@ import com.github.f9c.message.TargetedPayloadMessage;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.stream.Stream;
+import java.util.Iterator;
 
 public interface ClientMessage {
-    Stream<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient);
+    Iterator<TargetedPayloadMessage> createPayloadMessages(PrivateKey privateKey, PublicKey recipient);
+
+    DataMessageHeader getHeader();
 }
