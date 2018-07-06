@@ -27,14 +27,13 @@ public class F9cBot {
 
     public static void main(String[] args) throws Exception {
 
-        if (args.length != 4)  {
-            throw new IllegalArgumentException("Please specify the parameters: <configdir> <botdir> <botname> <server>");
+        if (args.length != 3)  {
+            throw new IllegalArgumentException("Please specify the parameters: <configdir> <botdir> <botname>");
         }
 
         String configDir = args[0];
         String botDir = args[1];
         String botName = args[2];
-        String server = args[3];
 
         String domain = getDomain();
         if (getDomain() == null || "".equals(getDomain())) {
@@ -46,7 +45,7 @@ public class F9cBot {
 
         ClientKeys keys = initKeys(configDir, botName);
 
-        Client client = connect(server, botListener, keys);
+        Client client = connect(domain, botListener, keys);
 
         botListener.setClient(client);
         botListener.setClientKeys(keys);

@@ -17,7 +17,7 @@ services:
     volumes:
       - /etc/f9c/bots:/usr/share/f9c/keys
     environment:
-      - "F9C_DOMAIN=${F9C_DOMAIN}"
+      - "F9C_DOMAIN=${F9C_BOT_DOMAIN}"
       - "TRUST_ALL_CERTIFICATES=true"
   redis:
     image: "redis"
