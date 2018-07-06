@@ -47,13 +47,24 @@ public class RedisConnection {
             try {
                 return RedisClient.create("redis://redis:6379/0");
             } catch (RedisConnectionException e) {
-                if (System.currentTimeMillis() - startTime >TIMEOUT) {
+                if (System.currentTimeMillis() - startTime > TIMEOUT) {
                     throw e;
                 } else {
                     log.info("Waiting for redis to start.");
+                    sleep();
                 }
             }
-        } while (true);
+        } while (!Thread.interrupted());
+
+        throw new IllegalStateException("Interrupted while waiting for redis start.");
+    }
+
+    private void sleep() {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public void close() {

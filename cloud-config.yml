@@ -10,7 +10,7 @@ write_files:
           f9c:
             image: "mehneni/f9c"
             ports:
-             - "443:8443"
+             - "443:443"
             depends_on:
               - "redis"
             volumes:

@@ -93,7 +93,7 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
         System.out.println("Starting server for domain: " + getDomain());
-        new Server(8443).run();
+        new Server(443).run();
     }
 
     private static String getDomain() {

@@ -15,7 +15,6 @@ import java.util.List;
 
 
 public class ClientIntegrationTest {
-    private static final int TEST_PORT = 8443;
 
     @Test
     void shouldOpenConnection() throws Exception {
@@ -23,7 +22,7 @@ public class ClientIntegrationTest {
 
         DummyListener clientMessageListener = new DummyListener();
         String server = "127.0.0.1";
-        Client client = new Client(server, TEST_PORT, clientKeys, clientMessageListener);
+        Client client = new Client(server, clientKeys, clientMessageListener, true);
 
         long time = System.currentTimeMillis();
         for (int i = 0; i < 10000; i++) {

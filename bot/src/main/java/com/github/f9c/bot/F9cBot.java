@@ -3,6 +3,7 @@ package com.github.f9c.bot;
 import com.github.f9c.Client;
 import com.github.f9c.client.ClientKeys;
 import com.github.f9c.client.ClientUrl;
+import com.neovisionaries.ws.client.WebSocketException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,13 +20,13 @@ import java.util.logging.Logger;
 
 public class F9cBot {
     private static final Logger log = Logger.getLogger(F9cBot.class.getName());
+    private static final long TIMEOUT = 30000;
 
     public static final String PRIVATE_KEY_DAT = "privateKey.dat";
     public static final String PUBLIC_KEY_DAT = "publicKey.dat";
 
     public static void main(String[] args) throws Exception {
-        // TODO: Wait until server port is open
-        Thread.sleep(4000);
+
         if (args.length != 4)  {
             throw new IllegalArgumentException("Please specify the parameters: <configdir> <botdir> <botname> <server>");
         }
@@ -45,13 +46,30 @@ public class F9cBot {
 
         ClientKeys keys = initKeys(configDir, botName);
 
-        Client client = new Client(server, 8443, keys, botListener);
+        Client client = connect(server, botListener, keys);
+
         botListener.setClient(client);
         botListener.setClientKeys(keys);
 
         String encodedKey  = Base64.getUrlEncoder().encodeToString(keys.getPublicKey().getEncoded());
 
         System.out.println("Bot link: " + ClientUrl.createSharingUrl(botListener.getAlias(), encodedKey, domain));
+    }
+
+    private static Client connect(String server, BotListener botListener, ClientKeys keys) throws Exception {
+        long startTime = System.currentTimeMillis();
+        do {
+            try {
+                return new Client(server, keys, botListener, "true".equals(System.getenv("TRUST_ALL_CERTIFICATES")));
+            } catch (WebSocketException e) {
+                if (System.currentTimeMillis() - startTime > TIMEOUT) {
+                    throw e;
+                } else {
+                    log.info("Waiting for server to open port: " + e.getMessage());
+                    Thread.sleep(1000);
+                }
+            }
+        } while (true);
     }
 
     private static String getDomain() {

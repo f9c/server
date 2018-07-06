@@ -24,6 +24,7 @@ import java.util.Map;
 public class Client {
     private static final int DEFAULT_PORT = 443;
     private final ClientKeys keys;
+    private final boolean trustAllSslCertificates;
 
     private AuthenticatedClientEndpoint endpoint;
     private WebSocket primaryServerSocket;
@@ -33,17 +34,25 @@ public class Client {
     private WebSocketFactory factory;
     private String host;
 
-    public Client(String host, int port, ClientKeys keys, ClientMessageListener clientMessageListener) throws Exception {
+    public Client(String host, ClientKeys keys, ClientMessageListener clientMessageListener) throws Exception {
+        this(host, keys, clientMessageListener, false);
+    }
+
+    /**
+     * @param trustAllSslCertificates This should only be set when working on a local server that does not have
+     *                                a valid certificate.
+     */
+    public Client(String host, ClientKeys keys, ClientMessageListener clientMessageListener, boolean trustAllSslCertificates) throws Exception {
         this.host = host;
-        this.uri = createUri(host, port);
+        this.uri = createUri(host, DEFAULT_PORT);
         this.keys = keys;
         this.secondarySockets = new HashMap<>();
+        this.trustAllSslCertificates = trustAllSslCertificates;
 
         factory = createWebSocketFactory();
         endpoint = new AuthenticatedClientEndpoint(keys, clientMessageListener);
 
         primaryServerSocket = createWebSocket(uri, factory, endpoint);
-
     }
 
     private String createUri(String host, int port) {
@@ -52,30 +61,33 @@ public class Client {
 
     private WebSocketFactory createWebSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
         WebSocketFactory factory = new WebSocketFactory();
-        // Create a trust manager that does not validate certificate chains
-        TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
 
-            @Override
-            public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {
+        if (trustAllSslCertificates) {
+            // Create a trust manager that does not validate certificate chains
+            TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
 
-            }
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {
 
-            @Override
-            public void checkServerTrusted(X509Certificate[] x509Certificates, String s) {
+                }
 
-            }
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s) {
 
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                return new X509Certificate[0];
-            }
-        }};
+                }
 
-        SSLContext sslContext = SSLContext.getInstance("SSL");
-        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }};
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
 
-        factory.setSSLContext(sslContext);
-        factory.setVerifyHostname(false);
+            factory.setSSLContext(sslContext);
+            factory.setVerifyHostname(false);
+        }
+
         return factory;
     }
 

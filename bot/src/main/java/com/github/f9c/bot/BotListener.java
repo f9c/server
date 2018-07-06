@@ -47,7 +47,7 @@ public class BotListener implements ClientMessageListener {
                     });
 
     public BotListener(String baseDir, String botName, String sendServer) throws IOException {
-        System.out.println("Using " + new File(baseDir).getAbsolutePath() + " as bas dir.");
+        System.out.println("Using " + new File(baseDir).getAbsolutePath() + " as base dir.");
 
         this.sendServer = sendServer;
         profileImage = Files.readAllBytes(Paths.get(baseDir, "bots", botName, "profile.png"));
